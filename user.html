@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" type="text/css" href="./user.css">
+    <title>Library</title>
+    <script>
+        // the URI for our local node Library Server
+        const base_url = "http://127.0.0.1:3000";
+
+        // a function that gets the list of users and adds them to the table
+        function updateUserTable() {
+
+            // set up and make a GET request to the Users endpoint
+            var xhttp = new XMLHttpRequest();
+            var users_url = "/users";
+
+            var query_url = base_url + users_url;
+            xhttp.open('GET', query_url);
+
+            // when the request is finished, go through the return data
+            // and add each user to the table
+            xhttp.addEventListener('load', function () {
+
+                var user_table = document.getElementById('user_table');
+                // clear the list of existing data
+                user_table.innerHTML = "";
+
+                var users = JSON.parse(this.response);
+                // loop through all users
+                users.forEach(function (user) {
+                    // create a new tableRow item for each one and add to the table
+                    var name = document.createTextNode(user.name);
+                    var barcode = document.createTextNode(user.barcode);
+                    var memberType = document.createTextNode(user.memberType);
+                    var table_row = document.createElement('tr');
+                    var column0 = document.createElement('td');
+                    var column1 = document.createElement('td');
+                    var column2 = document.createElement('td');
+                    var column3 = document.createElement('td');
+                    var column4 = document.createElement('td');
+                    var column5 = document.createElement('td');
+                    column3.style.cursor='pointer';
+                    column4.style.cursor='pointer';
+                    column5.style.cursor='pointer';
+                    column3.addEventListener('click', function () {
+                        del_url = query_url + "/" + user.id;
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.open("DELETE", del_url);
+                        xhttp.setRequestHeader('Content-Type', 'application/json');
+                        var params = {
+                            userID: user.id
+                        };
+
+                        xhttp.addEventListener('load', function () {
+                            updateUserTable();
+                        });
+                        xhttp.send(JSON.stringify(params));
+
+                    });
+                    column4.addEventListener('click', function () {
+                        document.getElementById('search').style.display = 'none';
+                        document.getElementById('sec').style.display = 'none';
+                        document.getElementById('userInfo').style.display = 'block';
+                        get_url = base_url + '/users/' + user.id;
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.open("GET", get_url);
+                        xhttp.setRequestHeader('Content-Type', 'application/json');
+                        var params = {
+                            userID: user.id
+                        };
+                        xhttp.send(JSON.stringify(params));
+                        xhttp.addEventListener('load', function () {
+                            var userInfo = JSON.parse(this.response);
+                            var name = document.getElementById('name');
+                            var barcode = document.getElementById('barcode');
+                            var memberType = document.getElementsByName('memberType');
+
+                            name.value = userInfo.name;
+                            barcode.value = userInfo.barcode;
+                            for (var i = 0; i < memberType.length; i++) {
+                                if (memberType[i].value == userInfo.memberType) {
+                                    memberType[i].checked = true;
+                                    break;
+                                }
+                            }
+                        });
+                        document.getElementById('userID').value = user.id;
+
+                    });
+                    column5.addEventListener('click', function () {
+                        document.getElementById('borrow_userId').value=user.id;
+                        var select=document.getElementById('titles');
+                        var book_url = base_url + "/books";
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.open("get", book_url);
+                        xhttp.setRequestHeader('Content-Type', 'application/json');
+                        xhttp.addEventListener('load', function () {
+                            var books=JSON.parse(this.response);
+                            books.forEach(function(book){
+                                var option=document.createElement('option');
+                                option.append(book.title);
+                                option.value=book.id;
+                                select.appendChild(option);
+                            })
+                            document.getElementById('borrow_info').style.display='block';
+                        });
+                        xhttp.send(JSON.stringify());
+
+                    });
+
+                    column0.appendChild(name);
+                    column1.appendChild(barcode);
+                    column2.appendChild(memberType);
+                    column3.append('remove');
+                    column4.append('update');
+                    column5.append('borrow book');
+                    table_row.appendChild(column0);
+                    table_row.appendChild(column1);
+                    table_row.appendChild(column2);
+                    table_row.appendChild(column3);
+                    table_row.appendChild(column4);
+                    table_row.appendChild(column5);
+                    user_table.appendChild(table_row);
+                })
+            });
+            xhttp.send();
+        }
+
+        function submit() {
+            var userID = document.getElementById('userID');
+            var name = document.getElementById("name");
+            var barcode = document.getElementById('barcode');
+            var memberType;
+            var radios = document.getElementsByName('memberType');
+            for (var i = 0; i < radios.length; i++) {
+                if (radios[i].checked) {
+                    memberType = radios[i];
+                    break;
+                }
+            }
+            if (userID.value) {
+                var put_url = base_url + '/users/' + userID.value;
+                var xhttp = new XMLHttpRequest();
+                xhttp.open("PUT", put_url);
+                xhttp.setRequestHeader('Content-Type', 'application/json');
+                var params = {
+                    userID: userID.value,
+                    name: name.value,
+                    barcode: barcode.value,
+                    memberType: memberType.value
+                }
+                xhttp.addEventListener('load', function () {
+                    alert('update success!');
+                    userID.value = "";
+                    name.value = "";
+                    barcode.value = "";
+                    memberType.checked = false;
+                    document.getElementById('userInfo').style.display = 'none';
+                    document.getElementById('search').style.display = 'block';
+                    document.getElementById('sec').style.display = 'block';
+                    updateUserTable();
+                });
+                xhttp.send(JSON.stringify(params));
+            } else {
+                var add_url = base_url + "/users";
+                var xhttp = new XMLHttpRequest();
+                xhttp.open("POST", add_url);
+                xhttp.setRequestHeader('Content-Type', 'application/json');
+                var body = {
+                    name: name.value,
+                    barcode: barcode.value,
+                    memberType: memberType.value
+                };
+                xhttp.addEventListener('load', function () {
+                    alert('add success!');
+                    name.value = "";
+                    barcode.value = "";
+                    memberType.checked = false;
+                    document.getElementById('userInfo').style.display = 'none';
+                    document.getElementById('search').style.display = 'block';
+                    document.getElementById('sec').style.display = 'block';
+                    updateUserTable();
+                });
+
+                xhttp.send(JSON.stringify(body));
+
+            }
+        }
+
+        function addUser() {
+            document.getElementById('userInfo').style.display = 'block';
+            document.getElementById('search').style.display = 'none';
+            document.getElementById('sec').style.display = 'none';
+        }
+        function borrow(){
+            var user_id=document.getElementById('borrow_userId').value;
+            var book_id;
+            var options=document.getElementsByTagName('option');
+            var date= document.getElementById('duedate').value;
+            for(var i=0;i<options.length;i++){
+                if(options[i].selected){
+                    book_id=options[i].value;
+                }
+            }
+            var params={
+                userID:user_id,
+                bookID:book_id,
+                dueDate:date+' 24:00:00'
+            }
+            var borrow_url=base_url+'/users/'+user_id+'/loans/'+book_id;
+            var xhttp=new XMLHttpRequest();
+            xhttp.open("POST", borrow_url);
+            xhttp.setRequestHeader('Content-Type', 'application/json');
+            xhttp.addEventListener('load',function(){
+                alert('borrow success!');
+                document.getElementById('borrow_info').style.display='none';
+            })
+            xhttp.send(JSON.stringify(params));
+        }
+        updateUserTable();
+    </script>
+</head>
+
+<body>
+    <header>
+        PontyBridge University Library Management
+    </header>
+
+    <main>
+        <h1><a href="./index.html">Home</a>>user</h1>
+        <div class='content'>
+            <div id='userInfo'>
+                <input type='text' id='userID' style="display: none">
+                <div class='inp'>
+                    <p>name:</p><input type='text' id='name'>
+                </div>
+                <div class='inp'>
+                    <p>barcode:</p><input type="text" id='barcode'>
+                </div>
+                <div id='rad'>
+                    <div><label><input type="radio" name="memberType" value="student">student</label></div>
+                    <div><label><input type="radio" name='memberType' value="stall">stall</label></div>
+                </div>
+                <button onclick="submit()">submit</button>
+            </div>
+            <div id='search'>
+                <button onclick="addUser()">add user</button>
+            </div>
+            <section id='sec'>
+                <h2>User List</h2>
+                <table id="user_table">
+                </table>
+            </section>
+            <div id='borrow_info'>
+                <input type='text' id='borrow_userId' style="display: none">
+                <div class='inp'>
+                    <p>book title:</p><select id='titles'></select>
+                </div>
+                <div class='inp'>
+                    <p>duedate</p><input type='date' id='duedate'>
+                </div>
+                <button onclick="borrow()">borrow</button>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        PontyBridge University Library
+    </footer>
+
+</body>
+
+</html>

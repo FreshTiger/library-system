@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" type="text/css" href="./book.css">
+    <title>Library</title>
+    <script>
+        // the URI for our local node Library Server
+        const base_url = "http://127.0.0.1:3000";
+
+        // a function that gets the list of books and adds them to the table
+        function updatebookTable() {
+
+            // set up and make a GET request to the Books endpoint
+            var xhttp = new XMLHttpRequest();
+            var books_url = "/books";
+
+            var query_url = base_url + books_url;
+            xhttp.open('GET', query_url);
+
+            // when the request is finished, go through the return data
+            // and add each book to the table
+            xhttp.addEventListener('load', function () {
+
+                var book_table = document.getElementById('book_table');
+                // clear the list of existing data
+                book_table.innerHTML = "";
+
+                var books = JSON.parse(this.response);
+                // loop through all books
+                books.forEach(function (book) {
+                    // create a new tableRow item for each one and add to the table
+                    var title = document.createTextNode(book.title);
+                    var isbn = document.createTextNode(book.isbn);
+                    var table_row = document.createElement('tr');
+                    var column0 = document.createElement('td');
+                    var column1 = document.createElement('td');
+                    var column2 = document.createElement('td');
+                    column2.style.cursor = 'pointer';
+                    column2.addEventListener('click', function () {
+                        del_url = query_url + "/" + book.id;
+                        var xhttp = new XMLHttpRequest();
+                        xhttp.open("DELETE", del_url);
+                        xhttp.setRequestHeader('Content-Type', 'application/json');
+                        var params = {
+                            bookID: book.id
+                        };
+
+                        xhttp.addEventListener('load', function () {
+                            updatebookTable();
+                        });
+                        xhttp.send(JSON.stringify(params));
+
+                    });
+                    column0.appendChild(title);
+                    column1.appendChild(isbn);
+                    column2.append('remove');
+                    table_row.appendChild(column0);
+                    table_row.appendChild(column1);
+                    table_row.appendChild(column2);
+                    book_table.appendChild(table_row);
+                })
+            });
+            xhttp.send();
+        }
+
+        function submit() {
+            var title = document.getElementById("name");
+            var isbn = document.getElementById('isbn');
+            var add_url = base_url + "/books";
+            var xhttp = new XMLHttpRequest();
+            xhttp.open("POST", add_url);
+
+            xhttp.setRequestHeader('Content-Type', 'application/json');
+            var body = {
+                title: title.value,
+                isbn: isbn.value
+            };
+            xhttp.addEventListener('load', function () {
+                alert('add success!');
+                title.value = "";
+                isbn.value = "";
+                document.getElementById('bookInfo').style.display = 'none';
+                document.getElementById('search').style.display = 'block';
+                document.getElementById('sec').style.display = 'block';
+                updatebookTable();
+            });
+
+            xhttp.send(JSON.stringify(body));
+
+        }
+
+        function addbook() {
+            document.getElementById('bookInfo').style.display = 'block';
+            document.getElementById('search').style.display = 'none';
+            document.getElementById('sec').style.display = 'none';
+        }
+        updatebookTable();
+    </script>
+</head>
+
+<body>
+    <header>
+        PontyBridge University Library Management
+    </header>
+
+    <main>
+        <h1><a href="./index.html">Home</a>>book</h1>
+        <div class='content'>
+            <div id='bookInfo'>
+                <div class='inp'>
+                    <p>title:</p><input type='text' id='name'>
+                </div>
+                <div class='inp'>
+                    <p>isbn:</p><input type="text" id='isbn'>
+                </div>
+                <button onclick="submit()">submit</button>
+            </div>
+            <div id='search'>
+                <button onclick="addbook()">add book</button>
+            </div>
+            <section id='sec'>
+                <h2>book List</h2>
+                <table id="book_table">
+                </table>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        PontyBridge University Library
+    </footer>
+
+</body>
+
+</html>
